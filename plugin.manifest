@@ -1,0 +1,5 @@
+pluginname=FavoriteCources
+pluginclassname=FavoritecourcesPlugin
+origin=Vec
+version=0.1a
+studipMinVersion=3.1
