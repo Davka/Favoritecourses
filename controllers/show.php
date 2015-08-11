@@ -23,6 +23,10 @@ class ShowController extends StudipController
         $actions->addLink(_('Einstellungen'), $this->url_for('show/settings'), 'icons/16/blue/tools.png')->asDialog(true);
         Sidebar::Get()->addWidget($actions);
 
+        $options = new OptionsWidget();
+        $params =  $this->plugin->start_page == 'yes' ? array('cancel' => true) : array('really' => true);
+        $options->addCheckbox(_('Startseite verwendet'), $this->plugin->start_page == 'yes', $this->url_for('show/set_startpage', $params));
+        Sidebar::Get()->addWidget($options);
         $favorites = UserConfig::get($GLOBALS['user']->id)->FAVORITE_COURSES;
         $favorites = json_decode($favorites);
         if ($favorites) {
@@ -49,6 +53,17 @@ class ShowController extends StudipController
         $this->courses = $this->getCourses();
     }
 
+    public function set_startpage_action() {
+        if(Request::get('really')) {
+            UserConfig::get($GLOBALS['user']->id)->store('FAVORITE_COURSES_START_PAGE', 'yes');
+            $this->redirect('show/index');
+            return;
+        } else {
+            UserConfig::get($GLOBALS['user']->id)->store('FAVORITE_COURSES_START_PAGE', 'no');
+            $this->redirect(URLHelper::getLink('dispatch.php/my_courses'));
+            return;
+        }
+    }
 
     public function save_settings_action()
     {
