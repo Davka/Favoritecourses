@@ -117,7 +117,7 @@ class ShowController extends StudipController
             $_course['visitdate'] = object_get_visit($course->id, 'sem', '');
 
             $user_status = @$member_ships[$course->id]['status'];
-            if(!$user_status && Config::get()->DEPUTIES_ENABLE && isDeputy($GLOBALS['user']->id, $course->id)) {
+            if (!$user_status && Config::get()->DEPUTIES_ENABLE && isDeputy($GLOBALS['user']->id, $course->id)) {
                 $user_status = 'dozent';
                 $is_deputy = true;
             } else {
@@ -158,7 +158,7 @@ class ShowController extends StudipController
                         $_ids[] = $a['Seminar_id'];
                     }
                 });
-                $courses[$sem['name']]['courses'] = $cm;
+                $courses[$sem['name']] = $cm;
             }
         }
 
@@ -177,7 +177,7 @@ class ShowController extends StudipController
                         $_ids[] = $a['Seminar_id'];
                     }
                 });
-                $courses['unbegrenzt laufende']['courses'] = $cm;
+                $courses['unbegrenzt laufende'] = $cm;
             }
         }
 
