@@ -53,6 +53,8 @@ class ShowController extends StudipController
         } else {
             PageLayout::postMessage(MessageBox::info(_('Sie haben noch keine Favoriten eingestellt. Sie können diese in den Einstellungen festlegen!')));
         }
+
+        $this->app_factory = new Flexi_TemplateFactory($GLOBALS['STUDIP_BASE_PATH'] . '/app/views/');
     }
 
     public function settings_action()
