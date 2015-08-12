@@ -20,8 +20,8 @@ class FavoritecourcesPlugin extends StudIPPlugin implements SystemPlugin
             return;
         }
 
-        $start_page = UserConfig::get($GLOBALS['user']->id)->FAVORITE_COURSES_START_PAGE;
-        if ($start_page == '') {
+        $this->start_page = UserConfig::get($GLOBALS['user']->id)->FAVORITE_COURSES_START_PAGE;
+        if ($this->start_page == '') {
             $question = createQuestion(_('Wollen Sie die Favoritenliste als Startseite einstellen?'),
                                        array('really' => true),
                                        array('cancel' => true),
@@ -33,7 +33,7 @@ class FavoritecourcesPlugin extends StudIPPlugin implements SystemPlugin
             $navigation = new Navigation($this->getName());
             $navigation->setURL(PluginEngine::GetURL($this, array(), 'show/index'));
 
-            if ($start_page == 'yes') {
+            if ($this->start_page == 'yes') {
                 Navigation::insertItem('/browse/fav_courses', $navigation, 'my_courses');
                 Navigation::getItem('/browse')->setURL($navigation->getURL());
             } else {
