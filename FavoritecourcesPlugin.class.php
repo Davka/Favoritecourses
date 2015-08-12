@@ -49,7 +49,6 @@ class FavoritecourcesPlugin extends StudIPPlugin implements SystemPlugin
 
     public function perform($unconsumed_path)
     {
-        $this->setupAutoload();
         $dispatcher = new Trails_Dispatcher(
             $this->getPluginPath(),
             rtrim(PluginEngine::getLink($this, array(), null), '/'),
@@ -57,16 +56,5 @@ class FavoritecourcesPlugin extends StudIPPlugin implements SystemPlugin
         );
         $dispatcher->plugin = $this;
         $dispatcher->dispatch($unconsumed_path);
-    }
-
-    private function setupAutoload()
-    {
-        if (class_exists('StudipAutoloader')) {
-            StudipAutoloader::addAutoloadPath(__DIR__ . '/models');
-        } else {
-            spl_autoload_register(function ($class) {
-                include_once __DIR__ . $class . '.php';
-            });
-        }
     }
 }
