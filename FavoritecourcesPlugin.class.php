@@ -21,12 +21,10 @@ class FavoritecourcesPlugin extends StudIPPlugin implements SystemPlugin
         }
 
         $this->start_page = UserConfig::get($GLOBALS['user']->id)->FAVORITE_COURSES_START_PAGE;
-        if ($this->start_page == '') {
-            $question = createQuestion(_('Wollen Sie die Favoritenliste als Startseite einstellen?'),
-                                       array('really' => true),
-                                       array('cancel' => true),
-                                       PluginEngine::getLink($this, array(), 'show/set_startpage'));
-            PageLayout::addBodyElements($question);
+        if ($this->start_page == '' && match_route('dispatch.php/my_courses')) {
+            $msg = array(sprintf('<a href="%s">%s</a>', PluginEngine::getLink($this, array('really' => true), 'show/set_startpage'), _('Ja')));
+            $msg[] = sprintf('<a href="%s">%s</a>', PluginEngine::getLink($this, array('cancel' => true), 'show/set_startpage'), _('Nein'));
+            PageLayout::postMessage(MessageBox::info(_('Wollen Sie die Favoritenliste (Reiter "Meiner Favoriten") als Startseite einstellen?'), $msg));
         }
 
         if (Navigation::hasItem('/browse')) {
