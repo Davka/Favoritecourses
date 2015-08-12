@@ -25,7 +25,7 @@ class ShowController extends StudipController
 
         $options = new OptionsWidget();
         $params =  $this->plugin->start_page == 'yes' ? array('cancel' => true) : array('really' => true);
-        $options->addCheckbox(_('Startseite verwendet'), $this->plugin->start_page == 'yes', $this->url_for('show/set_startpage', $params));
+        $options->addCheckbox(_('Als Startseite verwenden'), $this->plugin->start_page == 'yes', $this->url_for('show/set_startpage', $params));
         Sidebar::Get()->addWidget($options);
         $favorites = UserConfig::get($GLOBALS['user']->id)->FAVORITE_COURSES;
         $favorites = json_decode($favorites);

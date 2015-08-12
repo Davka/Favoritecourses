@@ -15,24 +15,27 @@ class FavoritecourcesPlugin extends StudIPPlugin implements SystemPlugin
     public function __construct()
     {
         parent::__construct();
-        $start_page = UserConfig::get($GLOBALS['user']->id)->FAVORITE_COURSES_START_PAGE;
-        if ($start_page == '') {
-            echo createQuestion(_('Wollen Sie die Favoritenliste als Startseite einstellen?'), array('really' => true), array('cancel' => true), PluginEngine::getLink($this, array(), 'show/set_startpage'));
-        }
 
-        if (Navigation::hasItem('/browse')) {
-            $navigation = new AutoNavigation($this->getName());
-            $navigation->setURL(PluginEngine::GetURL($this, array(), 'show/index'));
-
-
-            if ($start_page == 'yes') {
-                Navigation::insertItem('/browse/fav_courses', $navigation, 'my_courses');
-                Navigation::getItem('/browse')->setURL(PluginEngine::GetURL($this, array(), 'show/index'));
-            } else {
-                Navigation::addItem('/browse/fav_courses', $navigation);
+        if(!$GLOBALS['perm']->have_perm('admin')) {
+            $start_page = UserConfig::get($GLOBALS['user']->id)->FAVORITE_COURSES_START_PAGE;
+            if ($start_page == '') {
+                echo createQuestion(_('Wollen Sie die Favoritenliste als Startseite einstellen?'), array('really' => true), array('cancel' => true), PluginEngine::getLink($this, array(), 'show/set_startpage'));
             }
+
+            if (Navigation::hasItem('/browse')) {
+                $navigation = new AutoNavigation($this->getName());
+                $navigation->setURL(PluginEngine::GetURL($this, array(), 'show/index'));
+
+
+                if ($start_page == 'yes') {
+                    Navigation::insertItem('/browse/fav_courses', $navigation, 'my_courses');
+                    Navigation::getItem('/browse')->setURL(PluginEngine::GetURL($this, array(), 'show/index'));
+                } else {
+                    Navigation::addItem('/browse/fav_courses', $navigation);
+                }
+            }
+            $this->start_page = $start_page;
         }
-        $this->start_page = $start_page;
     }
 
     public function getName()
