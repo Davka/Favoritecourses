@@ -13,20 +13,35 @@ class ShowController extends StudipController
     {
         parent::before_filter($action, $args);
 
-        $this->set_layout($GLOBALS['template_factory']->open('layouts/base_without_infobox.php'));
         PageLayout::setTitle($this->plugin->getName());
+
+        if (Request::isXhr()) {
+            $this->set_content_type('text/html;charset=windows-1252');
+            $this->set_layout(null);
+        }
+    }
+    
+    public function after_filter($action, $args)
+    {
+        $title = PageLayout::getTitle();
+        if ($title) {
+            $this->response->add_header('X-Title', $title);
+        }
+        
+        parent::after_filter($action, $args);
     }
 
     public function index_action()
     {
         $actions = new ActionsWidget();
-        $actions->addLink(_('Einstellungen'), $this->url_for('show/settings'), 'icons/16/blue/tools.png')->asDialog(true);
+        $actions->addLink(_('Einstellungen'), $this->url_for('show/settings'), 'icons/16/blue/tools.png')->asDialog();
         Sidebar::Get()->addWidget($actions);
 
         $options = new OptionsWidget();
         $params =  $this->plugin->start_page == 'yes' ? array('cancel' => true) : array('really' => true);
         $options->addCheckbox(_('Als Startseite verwenden'), $this->plugin->start_page == 'yes', $this->url_for('show/set_startpage', $params));
         Sidebar::Get()->addWidget($options);
+
         $favorites = UserConfig::get($GLOBALS['user']->id)->FAVORITE_COURSES;
         $favorites = json_decode($favorites);
         if ($favorites) {
@@ -38,22 +53,20 @@ class ShowController extends StudipController
 
     public function settings_action()
     {
-        $this->title = _('Favoriten - Einstellungen');
+        PageLayout::setTitle(_('Favoriten - Einstellungen'));
+
         $favorites = UserConfig::get($GLOBALS['user']->id)->FAVORITE_COURSES;
-        if($favorites) {
+        if ($favorites) {
             $this->ids = json_decode($favorites);
-        }
-        if (Request::isXhr()) {
-            $this->set_layout(null);
-            header('X-Title: ' . $this->title);
-            $this->set_content_type('text/html;charset=windows-1252');
         } else {
-            PageLayout::setTitle($this->title);
+            $this->ids = array();
         }
+
         $this->courses = $this->getCourses();
     }
 
-    public function set_startpage_action() {
+    public function set_startpage_action()
+    {
         if(Request::get('really')) {
             UserConfig::get($GLOBALS['user']->id)->store('FAVORITE_COURSES_START_PAGE', 'yes');
             $this->redirect('show/index');
