@@ -13,69 +13,91 @@ class ShowController extends StudipController
     {
         parent::before_filter($action, $args);
 
-        $this->set_layout($GLOBALS['template_factory']->open('layouts/base_without_infobox.php'));
         PageLayout::setTitle($this->plugin->getName());
+
+        if (Request::isXhr()) {
+            $this->set_content_type('text/html;charset=windows-1252');
+            $this->set_layout(null);
+        } else {
+            $this->set_layout($GLOBALS['template_factory']->open('layouts/base.php'));
+        }
+
+        $this->config = UserConfig::get($GLOBALS['user']->id);
+    }
+
+    public function after_filter($action, $args)
+    {
+        $title = PageLayout::getTitle();
+        if ($title) {
+            $this->response->add_header('X-Title', $title);
+        }
+
+        parent::after_filter($action, $args);
     }
 
     public function index_action()
     {
+        Navigation::activateItem('/browse/fav_courses');
+
         $actions = new ActionsWidget();
-        $actions->addLink(_('Einstellungen'), $this->url_for('show/settings'), 'icons/16/blue/tools.png')->asDialog(true);
+        $actions->addLink(_('Einstellungen'), $this->url_for('show/settings'), 'icons/16/blue/tools.png')->asDialog();
         Sidebar::Get()->addWidget($actions);
 
         $options = new OptionsWidget();
         $params =  $this->plugin->start_page == 'yes' ? array('cancel' => true) : array('really' => true);
         $options->addCheckbox(_('Als Startseite verwenden'), $this->plugin->start_page == 'yes', $this->url_for('show/set_startpage', $params));
         Sidebar::Get()->addWidget($options);
-        $favorites = UserConfig::get($GLOBALS['user']->id)->FAVORITE_COURSES;
+
+        $favorites = $this->config->FAVORITE_COURSES;
         $favorites = json_decode($favorites);
         if ($favorites) {
             $this->courses = $this->prepareCourses($favorites);
         } else {
             PageLayout::postMessage(MessageBox::info(_('Sie haben noch keine Favoriten eingestellt. Sie können diese in den Einstellungen festlegen!')));
         }
+
+        $this->app_factory = new Flexi_TemplateFactory($GLOBALS['STUDIP_BASE_PATH'] . '/app/views/');
     }
 
     public function settings_action()
     {
-        $this->title = _('Favoriten - Einstellungen');
-        $favorites = UserConfig::get($GLOBALS['user']->id)->FAVORITE_COURSES;
-        if($favorites) {
-            $this->ids = json_decode($favorites);
-        }
-        if (Request::isXhr()) {
-            $this->set_layout(null);
-            header('X-Title: ' . $this->title);
-            $this->set_content_type('text/html;charset=windows-1252');
-        } else {
-            PageLayout::setTitle($this->title);
-        }
-        $this->courses = $this->getCourses();
-    }
+        PageLayout::setTitle(_('Favoriten - Einstellungen'));
 
-    public function set_startpage_action() {
-        if(Request::get('really')) {
-            UserConfig::get($GLOBALS['user']->id)->store('FAVORITE_COURSES_START_PAGE', 'yes');
-            $this->redirect('show/index');
-            return;
+        $favorites = $this->config->FAVORITE_COURSES;
+        if ($favorites) {
+            $this->ids = json_decode($favorites);
         } else {
-            UserConfig::get($GLOBALS['user']->id)->store('FAVORITE_COURSES_START_PAGE', 'no');
-            $this->redirect(URLHelper::getLink('dispatch.php/my_courses'));
-            return;
+            $this->ids = array();
         }
+
+        $this->courses = $this->getCourses();
     }
 
     public function save_settings_action()
     {
         CSRFProtection::verifyRequest();
+
         $favorites = Request::getArray('favorites');
         $favorites = json_encode($favorites);
-        UserConfig::get($GLOBALS['user']->id)->store('FAVORITE_COURSES', $favorites);
+        $this->config->store('FAVORITE_COURSES', $favorites);
+
         PageLayout::postMessage(MessageBox::success(_('Ihre Favoritenauswahl wurde erfolgreich gespeichert!')));
         $this->redirect('show/index');
     }
 
-    public function prepareCourses($ids)
+    public function set_startpage_action()
+    {
+        if (Request::get('really')) {
+            $this->config->store('FAVORITE_COURSES_START_PAGE', 'yes');
+            $url = 'show/index';
+        } else {
+            $this->config->store('FAVORITE_COURSES_START_PAGE', 'no');
+            $url = URLHelper::getLink('dispatch.php/my_courses');
+        }
+        $this->redirect($url);
+    }
+
+    protected function prepareCourses($ids)
     {
         $courses = array();
         $param_array = 'name seminar_id visible veranstaltungsnummer start_time duration_time status visible ';
@@ -95,7 +117,7 @@ class ShowController extends StudipController
             $_course['visitdate'] = object_get_visit($course->id, 'sem', '');
 
             $user_status = @$member_ships[$course->id]['status'];
-            if(!$user_status && Config::get()->DEPUTIES_ENABLE && isDeputy($GLOBALS['user']->id, $course->id)) {
+            if (!$user_status && Config::get()->DEPUTIES_ENABLE && isDeputy($GLOBALS['user']->id, $course->id)) {
                 $user_status = 'dozent';
                 $is_deputy = true;
             } else {
@@ -117,53 +139,58 @@ class ShowController extends StudipController
         return $courses;
     }
 
-    public function getCourses()
+    protected function getCourses()
     {
+        $query = "SELECT seminar_user.*, seminare.Name as course_name
+                  FROM seminar_user
+                  LEFT JOIN seminare USING (seminar_id)
+                  WHERE user_id = :user_id
+                    AND (seminare.start_time >= :beginn AND (seminare.start_time + seminare.duration_time) <= :ende)
+                    AND seminar_id NOT IN (:ids)
+                  ORDER BY seminare.Name";
+        $statement = DBManager::get()->prepare($query);
+        $statement->bindValue(':user_id', $GLOBALS['user']->id);
+        
         $semesters = array_reverse(SemesterData::GetSemesterArray());
-        $courses = array();
-        $_ids = array();
+        $courses   = array();
+        $ids       = array();
+
         foreach ($semesters as $sem) {
-            $cm = DBManager::get()->fetchAll("SELECT seminar_user.*, seminare.Name as course_name
-                             FROM seminar_user
-                             LEFT JOIN seminare USING (seminar_id)
-                             WHERE user_id = ? AND (seminare.start_time >= ? AND (seminare.start_time + seminare.duration_time) <= ?)
-                             ORDER BY seminare.Name",
-                array($GLOBALS['user']->id, $sem['beginn'], $sem['ende']),
-                __CLASS__ . '::buildExisting');
-            if (!empty($cm)) {
-                array_walk($cm, function ($a) use (&$_ids) {
-                    if (!in_array($a['Seminar_id'], $_ids)) {
-                        $_ids[] = $a['Seminar_id'];
-                    }
-                });
-                $courses[$sem['name']]['courses'] = $cm;
+            $statement->bindValue(':beginn', $sem['beginn']);
+            $statement->bindValue(':ende', $sem['ende']);
+            $statement->bindValue(':ids', $ids ?: '');
+            $statement->execute();
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+            if (!empty($rows)) {
+                $courses[$sem['name']] = $rows;
+                
+                $ids = array_merge($ids, array_map(function ($row) {
+                    return $row['Seminar_id'];
+                }, $rows));
             }
         }
 
-        if (!empty($ids)) {
-            $cm = DBManager::get()->fetchAll("SELECT seminar_user.*, seminare.Name as course_name
-                             FROM seminar_user
-                             LEFT JOIN seminare USING (seminar_id)
-                             WHERE user_id = ? AND seminar_id NOT IN (?)
-                             ORDER BY seminare.Name",
-                array($GLOBALS['user']->id, $_ids),
-                __CLASS__ . '::buildExisting');
+        $query = "SELECT seminar_user.*, seminare.Name as course_name
+                  FROM seminar_user
+                  LEFT JOIN seminare USING (seminar_id)
+                  WHERE user_id = :user_id AND seminar_id NOT IN (:ids)
+                  ORDER BY seminare.Name";
+        $statement = DBManager::get()->prepare($query);
+        $statement->bindValue(':user_id', $GLOBALS['user']->id);
+        $statement->bindValue(':ids', $ids ?: '');
+        $statement->execute();
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-            if (!empty($cm)) {
-                array_walk($cm, function ($a) use (&$_ids) {
-                    if (!in_array($a['Seminar_id'], $_ids)) {
-                        $_ids[] = $a['Seminar_id'];
-                    }
-                });
-                $courses['unbegrenzt laufende']['courses'] = $cm;
-            }
+        if (!empty($cm)) {
+            $courses[_('unbegrenzt laufende')] = $rows;
         }
 
         return $courses;
     }
 
     // customized #url_for for plugins
-    function url_for($to)
+    public function url_for($to)
     {
         $args = func_get_args();
 

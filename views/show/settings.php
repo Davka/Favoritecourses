@@ -1,25 +1,27 @@
 <form action="<?= $controller->url_for('show/save_settings')?>" method="post">
     <?=CSRFProtection::tokenTag()?>
-    <table class="default">
 
-        <? foreach ($courses as $sem => $c) : ?>
-            <thead>
+    <table class="default">
+        <colgroup>
+            <col width="20px">
+            <col>
+        </colgroup>
+    <? foreach ($courses as $sem => $courses): ?>
+        <tbody id="sem-<?= md5($sem) ?>">
             <tr>
-                <th></th>
+                <th>
+                    <input type="checkbox" data-proxyfor="#sem-<?= md5($sem) ?> td :checkbox">
+                </th>
                 <th><?= htmlReady($sem) ?></th>
             </tr>
-            </thead>
-            <tbody>
-            <? foreach ($c['courses'] as $cm) : ?>
-
-                <tr>
-                    <td><input type="checkbox" name="favorites[]" value="<?= $cm['Seminar_id']?>" <?= in_array($cm['Seminar_id'], $ids) ? 'checked' : ''?> /></td>
-                    <td><?= htmlReady($cm['course_name']) ?></td>
-                </tr>
-
-            <? endforeach ?>
-            </tbody>
-        <? endforeach ?>
+        <? foreach ($courses as $course): ?>
+            <tr>
+                <td><input type="checkbox" name="favorites[]" value="<?= $course['Seminar_id']?>" <?= in_array($course['Seminar_id'], $ids) ? 'checked' : ''?> /></td>
+                <td><?= htmlReady($course['course_name']) ?></td>
+            </tr>
+        <? endforeach; ?>
+        </tbody>
+    <? endforeach; ?>
     </table>
 
     <div data-dialog-button>
