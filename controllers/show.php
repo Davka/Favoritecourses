@@ -141,44 +141,49 @@ class ShowController extends StudipController
 
     protected function getCourses()
     {
+        $query = "SELECT seminar_user.*, seminare.Name as course_name
+                  FROM seminar_user
+                  LEFT JOIN seminare USING (seminar_id)
+                  WHERE user_id = :user_id
+                    AND (seminare.start_time >= :beginn AND (seminare.start_time + seminare.duration_time) <= :ende)
+                    AND seminar_id NOT IN (:ids)
+                  ORDER BY seminare.Name";
+        $statement = DBManager::get()->prepare($query);
+        $statement->bindValue(':user_id', $GLOBALS['user']->id);
+        
         $semesters = array_reverse(SemesterData::GetSemesterArray());
-        $courses = array();
-        $_ids = array();
+        $courses   = array();
+        $ids       = array();
+
         foreach ($semesters as $sem) {
-            $cm = DBManager::get()->fetchAll("SELECT seminar_user.*, seminare.Name as course_name
-                             FROM seminar_user
-                             LEFT JOIN seminare USING (seminar_id)
-                             WHERE user_id = ? AND (seminare.start_time >= ? AND (seminare.start_time + seminare.duration_time) <= ?)
-                             ORDER BY seminare.Name",
-                array($GLOBALS['user']->id, $sem['beginn'], $sem['ende']),
-                __CLASS__ . '::buildExisting');
-            if (!empty($cm)) {
-                array_walk($cm, function ($a) use (&$_ids) {
-                    if (!in_array($a['Seminar_id'], $_ids)) {
-                        $_ids[] = $a['Seminar_id'];
-                    }
-                });
-                $courses[$sem['name']] = $cm;
+            $statement->bindValue(':beginn', $sem['beginn']);
+            $statement->bindValue(':ende', $sem['ende']);
+            $statement->bindValue(':ids', $ids ?: '');
+            $statement->execute();
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+            if (!empty($rows)) {
+                $courses[$sem['name']] = $rows;
+                
+                $ids = array_merge($ids, array_map(function ($row) {
+                    return $row['Seminar_id'];
+                }, $rows));
             }
         }
 
-        if (!empty($ids)) {
-            $cm = DBManager::get()->fetchAll("SELECT seminar_user.*, seminare.Name as course_name
-                             FROM seminar_user
-                             LEFT JOIN seminare USING (seminar_id)
-                             WHERE user_id = ? AND seminar_id NOT IN (?)
-                             ORDER BY seminare.Name",
-                array($GLOBALS['user']->id, $_ids),
-                __CLASS__ . '::buildExisting');
+        $query = "SELECT seminar_user.*, seminare.Name as course_name
+                  FROM seminar_user
+                  LEFT JOIN seminare USING (seminar_id)
+                  WHERE user_id = :user_id AND seminar_id NOT IN (:ids)
+                  ORDER BY seminare.Name";
+        $statement = DBManager::get()->prepare($query);
+        $statement->bindValue(':user_id', $GLOBALS['user']->id);
+        $statement->bindValue(':ids', $ids ?: '');
+        $statement->execute();
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-            if (!empty($cm)) {
-                array_walk($cm, function ($a) use (&$_ids) {
-                    if (!in_array($a['Seminar_id'], $_ids)) {
-                        $_ids[] = $a['Seminar_id'];
-                    }
-                });
-                $courses['unbegrenzt laufende'] = $cm;
-            }
+        if (!empty($cm)) {
+            $courses['unbegrenzt laufende'] = $rows;
         }
 
         return $courses;
