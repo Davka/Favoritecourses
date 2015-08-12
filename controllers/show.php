@@ -69,6 +69,16 @@ class ShowController extends StudipController
         $this->courses = $this->getCourses();
     }
 
+    public function save_settings_action()
+    {
+        CSRFProtection::verifyRequest();
+        $favorites = Request::getArray('favorites');
+        $favorites = json_encode($favorites);
+        UserConfig::get($GLOBALS['user']->id)->store('FAVORITE_COURSES', $favorites);
+        PageLayout::postMessage(MessageBox::success(_('Ihre Favoritenauswahl wurde erfolgreich gespeichert!')));
+        $this->redirect('show/index');
+    }
+
     public function set_startpage_action()
     {
         if(Request::get('really')) {
@@ -82,17 +92,7 @@ class ShowController extends StudipController
         }
     }
 
-    public function save_settings_action()
-    {
-        CSRFProtection::verifyRequest();
-        $favorites = Request::getArray('favorites');
-        $favorites = json_encode($favorites);
-        UserConfig::get($GLOBALS['user']->id)->store('FAVORITE_COURSES', $favorites);
-        PageLayout::postMessage(MessageBox::success(_('Ihre Favoritenauswahl wurde erfolgreich gespeichert!')));
-        $this->redirect('show/index');
-    }
-
-    public function prepareCourses($ids)
+    protected function prepareCourses($ids)
     {
         $courses = array();
         $param_array = 'name seminar_id visible veranstaltungsnummer start_time duration_time status visible ';
@@ -134,7 +134,7 @@ class ShowController extends StudipController
         return $courses;
     }
 
-    public function getCourses()
+    protected function getCourses()
     {
         $semesters = array_reverse(SemesterData::GetSemesterArray());
         $courses = array();
@@ -180,7 +180,7 @@ class ShowController extends StudipController
     }
 
     // customized #url_for for plugins
-    function url_for($to)
+    public function url_for($to)
     {
         $args = func_get_args();
 
