@@ -35,7 +35,7 @@ class FavoritecourcesPlugin extends StudIPPlugin implements SystemPlugin
 
             if ($start_page == 'yes') {
                 Navigation::insertItem('/browse/fav_courses', $navigation, 'my_courses');
-                Navigation::getItem('/browse')->setURL(PluginEngine::GetURL($this, array(), 'show/index'));
+                Navigation::getItem('/browse')->setURL($navigation->getURL());
             } else {
                 Navigation::addItem('/browse/fav_courses', $navigation);
             }
