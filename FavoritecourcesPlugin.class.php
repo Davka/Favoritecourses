@@ -16,29 +16,29 @@ class FavoritecourcesPlugin extends StudIPPlugin implements SystemPlugin
     {
         parent::__construct();
 
-        if(!$GLOBALS['perm']->have_perm('admin')) {
-            $start_page = UserConfig::get($GLOBALS['user']->id)->FAVORITE_COURSES_START_PAGE;
-            if ($start_page == '') {
-                $question = createQuestion(_('Wollen Sie die Favoritenliste als Startseite einstellen?'),
-                                           array('really' => true),
-                                           array('cancel' => true),
-                                           PluginEngine::getLink($this, array(), 'show/set_startpage'));
-                PageLayout::addBodyElements($question);
+        if ($GLOBALS['perm']->have_perm('admin')) {
+            return;
+        }
+
+        $start_page = UserConfig::get($GLOBALS['user']->id)->FAVORITE_COURSES_START_PAGE;
+        if ($start_page == '') {
+            $question = createQuestion(_('Wollen Sie die Favoritenliste als Startseite einstellen?'),
+                                       array('really' => true),
+                                       array('cancel' => true),
+                                       PluginEngine::getLink($this, array(), 'show/set_startpage'));
+            PageLayout::addBodyElements($question);
+        }
+
+        if (Navigation::hasItem('/browse')) {
+            $navigation = new Navigation($this->getName());
+            $navigation->setURL(PluginEngine::GetURL($this, array(), 'show/index'));
+
+            if ($start_page == 'yes') {
+                Navigation::insertItem('/browse/fav_courses', $navigation, 'my_courses');
+                Navigation::getItem('/browse')->setURL(PluginEngine::GetURL($this, array(), 'show/index'));
+            } else {
+                Navigation::addItem('/browse/fav_courses', $navigation);
             }
-
-            if (Navigation::hasItem('/browse')) {
-                $navigation = new AutoNavigation($this->getName());
-                $navigation->setURL(PluginEngine::GetURL($this, array(), 'show/index'));
-
-
-                if ($start_page == 'yes') {
-                    Navigation::insertItem('/browse/fav_courses', $navigation, 'my_courses');
-                    Navigation::getItem('/browse')->setURL(PluginEngine::GetURL($this, array(), 'show/index'));
-                } else {
-                    Navigation::addItem('/browse/fav_courses', $navigation);
-                }
-            }
-            $this->start_page = $start_page;
         }
     }
 

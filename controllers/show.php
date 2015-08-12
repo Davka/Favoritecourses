@@ -22,19 +22,21 @@ class ShowController extends StudipController
             $this->set_layout($GLOBALS['template_factory']->open('layouts/base.php'));
         }
     }
-    
+
     public function after_filter($action, $args)
     {
         $title = PageLayout::getTitle();
         if ($title) {
             $this->response->add_header('X-Title', $title);
         }
-        
+
         parent::after_filter($action, $args);
     }
 
     public function index_action()
     {
+        Navigation::activateItem('/browse/fav_courses');
+
         $actions = new ActionsWidget();
         $actions->addLink(_('Einstellungen'), $this->url_for('show/settings'), 'icons/16/blue/tools.png')->asDialog();
         Sidebar::Get()->addWidget($actions);
