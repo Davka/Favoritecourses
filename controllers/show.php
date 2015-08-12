@@ -18,6 +18,8 @@ class ShowController extends StudipController
         if (Request::isXhr()) {
             $this->set_content_type('text/html;charset=windows-1252');
             $this->set_layout(null);
+        } else {
+            $this->set_layout($GLOBALS['template_factory']->open('layouts/base.php'));
         }
     }
     
