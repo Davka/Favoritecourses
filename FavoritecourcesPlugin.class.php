@@ -47,12 +47,6 @@ class FavoritecourcesPlugin extends StudIPPlugin implements SystemPlugin
         return _('Meine Favoriten');
     }
 
-    public function initialize()
-    {
-        PageLayout::addStylesheet($this->getPluginURL() . '/assets/style.less');
-        PageLayout::addScript($this->getPluginURL() . '/assets/application.js');
-    }
-
     public function perform($unconsumed_path)
     {
         $this->setupAutoload();
