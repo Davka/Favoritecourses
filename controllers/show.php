@@ -21,6 +21,8 @@ class ShowController extends StudipController
         } else {
             $this->set_layout($GLOBALS['template_factory']->open('layouts/base.php'));
         }
+
+        $this->config = UserConfig::get($GLOBALS['user']->id);
     }
 
     public function after_filter($action, $args)
@@ -46,7 +48,7 @@ class ShowController extends StudipController
         $options->addCheckbox(_('Als Startseite verwenden'), $this->plugin->start_page == 'yes', $this->url_for('show/set_startpage', $params));
         Sidebar::Get()->addWidget($options);
 
-        $favorites = UserConfig::get($GLOBALS['user']->id)->FAVORITE_COURSES;
+        $favorites = $this->config->FAVORITE_COURSES;
         $favorites = json_decode($favorites);
         if ($favorites) {
             $this->courses = $this->prepareCourses($favorites);
@@ -61,7 +63,7 @@ class ShowController extends StudipController
     {
         PageLayout::setTitle(_('Favoriten - Einstellungen'));
 
-        $favorites = UserConfig::get($GLOBALS['user']->id)->FAVORITE_COURSES;
+        $favorites = $this->config->FAVORITE_COURSES;
         if ($favorites) {
             $this->ids = json_decode($favorites);
         } else {
@@ -74,24 +76,25 @@ class ShowController extends StudipController
     public function save_settings_action()
     {
         CSRFProtection::verifyRequest();
+
         $favorites = Request::getArray('favorites');
         $favorites = json_encode($favorites);
-        UserConfig::get($GLOBALS['user']->id)->store('FAVORITE_COURSES', $favorites);
+        $this->config->store('FAVORITE_COURSES', $favorites);
+
         PageLayout::postMessage(MessageBox::success(_('Ihre Favoritenauswahl wurde erfolgreich gespeichert!')));
         $this->redirect('show/index');
     }
 
     public function set_startpage_action()
     {
-        if(Request::get('really')) {
-            UserConfig::get($GLOBALS['user']->id)->store('FAVORITE_COURSES_START_PAGE', 'yes');
-            $this->redirect('show/index');
-            return;
+        if (Request::get('really')) {
+            $this->config->store('FAVORITE_COURSES_START_PAGE', 'yes');
+            $url = 'show/index';
         } else {
-            UserConfig::get($GLOBALS['user']->id)->store('FAVORITE_COURSES_START_PAGE', 'no');
-            $this->redirect(URLHelper::getLink('dispatch.php/my_courses'));
-            return;
+            $this->config->store('FAVORITE_COURSES_START_PAGE', 'no');
+            $url = URLHelper::getLink('dispatch.php/my_courses');
         }
+        $this->redirect($url);
     }
 
     protected function prepareCourses($ids)
