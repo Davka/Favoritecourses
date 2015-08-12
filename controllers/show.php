@@ -183,7 +183,7 @@ class ShowController extends StudipController
         $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
 
         if (!empty($cm)) {
-            $courses['unbegrenzt laufende'] = $rows;
+            $courses[_('unbegrenzt laufende')] = $rows;
         }
 
         return $courses;
